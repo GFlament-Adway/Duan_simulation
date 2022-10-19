@@ -25,7 +25,7 @@ def get_data(n_ind=100, n_times=50, p=3, gamma_0=20, eta=1):
     :return:
     """
 
-    alpha = [2, 1, 1, 0.5]
+    alpha = [1, 1, 1, -0.5]
     C = []
     delta = []
     Times = []
@@ -55,9 +55,9 @@ def get_data(n_ind=100, n_times=50, p=3, gamma_0=20, eta=1):
         Z += [Z_temp]
         c = np.random.exponential(40)
         C += [c]
-        delta += [1 if c < Time else 0]
-        Times += [Time]
-    return np.array(Times, dtype=object), np.array(Z, dtype=object), np.array(delta, dtype=object)
+        delta += [1 if(c < Time and Time < n_times) else 0]
+        Times += [min(int(Time), n_times)]
+    return np.array(Times, dtype=object), np.array(Z, dtype=object), np.array(delta, dtype=object), alpha
 
 
 if __name__ == "__main__":
