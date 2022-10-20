@@ -2,6 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import lifelines
 
+def metropolis_sampler(x_0, s, t, n_sample = 1000):
+    #Init step, we use gaussian distribution as the proposal density.
+    x_c = np.random.normal(x_0, 1)
+    sample = [x_c]
+    for _ in range(n_sample):
+        x_c = np.random.normal(sample[-1], 1)
+        acceptance = posterior(x_c, s, t)/posterior(sample[-1], s,t)
+        u = np.random.uniform(0, 1)
+        if u <= acceptance:
+            sample += [x_c]
+        else:
+            pass
+    return sample[1:]
 
 def ornstein_uhlenbeck(t, ar):
     U = [0]
@@ -10,7 +23,7 @@ def ornstein_uhlenbeck(t, ar):
     return U
 
 
-def posterior(theta_t, eta_0, gamma_0, s, t):
+def posterior(theta_t, s, t, eta_0 = 1, gamma_0 = 20):
     post = np.exp(-(s - t) * theta_t) - np.exp(-(s - t + 1) * theta_t) * theta_t ** (eta_0 - 1) * np.exp(
         -(gamma_0 + t) * theta_t)
     return post
