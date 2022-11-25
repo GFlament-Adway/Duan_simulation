@@ -12,7 +12,7 @@ def ornstein_uhlenbeck(t, ar):
     return U
 
 
-def metropolis_sampler(x_0, s, t, burn_in=50, n_sample=100, gamma_0=20, eta=1):
+def metropolis_sampler(x_0, s, t, burn_in=10, n_sample=100, gamma_0=20, eta=1):
     """
 
     :param x_0:
@@ -31,10 +31,8 @@ def metropolis_sampler(x_0, s, t, burn_in=50, n_sample=100, gamma_0=20, eta=1):
     while len(sample) < 2:
         for _ in range(burn_in + n_sample):
             n_it += 1
-            x_c = np.random.normal(x_0, 1)
+            x_c = np.random.normal(x_0, 0.5)
             x_c = np.sign(x_c) * x_c
-            if n_it > 1000:
-                print(x_c, posterior(x_c, s, t, eta, gamma_0), x_0, posterior(x_0, s, t, eta, gamma_0))
 
             acceptance = posterior(x_c, s, t, eta, gamma_0) / posterior(x_0, s, t, eta, gamma_0)
             u = np.random.uniform(0, 1)
@@ -44,9 +42,6 @@ def metropolis_sampler(x_0, s, t, burn_in=50, n_sample=100, gamma_0=20, eta=1):
                 x_0 = x_c
     #assert np.sum([s < 0 for s in sample]) == 0, print(np.sum([s < 0 for s in sample]))
     return sample[1:]
-
-
-
 
 
 def posterior(theta_t, s, t, eta=1, gamma_0=20):
@@ -63,7 +58,7 @@ def get_data(n_ind=100, n_times=50, gamma_0=40, eta=1, tau=0):
     :param eta:
     :return:
     """
-    alpha = [[-5, 1] for _ in range(tau + 1)]
+    alpha = [[1, 1, 0.5, 2] for _ in range(tau + 1)]
     C = []
     delta = []
     Times = []
@@ -74,22 +69,28 @@ def get_data(n_ind=100, n_times=50, gamma_0=40, eta=1, tau=0):
 
     if tau == 0:
         for i in range(n_ind):
-            p_1 = np.random.normal(0, 1)
-            p_2 = np.random.normal(0, 1)
+            p_1, p_2 = np.random.multivariate_normal([1, 1], [[0.5, 0.2], [0.2, 0.5]])
+            p_3 = np.random.uniform(0, 1)
             Z_temp = []
-            Z_temp += [[1 if p_1 < 0 else 0 for _ in range(n_times)]]
-            Z_temp += [[1 if p_2 < 0 else -1 for _ in range(n_times)]]
+            Z_temp += [[-1 if p_1 < 0 else 0 for _ in range(n_times)]]
+            Z_temp += [[-5 if p_2 < 0 else -10 for _ in range(n_times)]]
+            Z_temp += [[1 if p_3 < 0.2 else 0 for _ in range(n_times)]]
+            Z_temp += [[np.random.normal(np.sqrt(t + 1), 0.1) for t in range(n_times)]]
+            #Z_temp += [
+            #    [np.random.normal(-1,2) for t in range(5)] + [np.random.normal(-5, 3)
+             #                                                              for t in range(5, n_times)]]
+
             """
+            Z_temp += [[p_1/10 + p_2*t/10 + np.random.normal(0, 0.1) for t in range(n_times)]]
             Z_temp += [
-                [np.random.normal(-1,2) for t in range(5)] + [np.random.normal(-5, 3)
+                [0.1*t + np.random.normal(0, 0.1) for t in range(5)] + [0.3*t - 1 + np.random.normal(0, 0.1)
                                                                            for t in range(5, n_times)]]
-            Z_temp += [
-                [np.random.normal(7, 6) for t in range(5)] + [ np.random.normal(10,3)
-                                                                           for t in range(5, n_times)]]
-            U = ornstein_uhlenbeck(n_times, 0.5)
+            #U = ornstein_uhlenbeck(n_times, 0.5)
             for t in range(1, n_times):
-                mu += [mu[t - 1] * 0.2 + np.random.normal()]
-            Z_temp += [[mu[t] for t in range(n_times)]]
+                mu += [mu[t - 1] * 0.02 + np.random.normal(0, 0.1)]
+            Z_temp += [[t/10+ mu[t] for t in range(n_times)]]
+
+            Z_temp += [[np.random.normal(-1.5, 0.1) for _ in range(n_times)]]
             """
             Z += [Z_temp]
             X = np.matmul(np.array(Z[i]).T, alpha[0])
@@ -104,29 +105,35 @@ def get_data(n_ind=100, n_times=50, gamma_0=40, eta=1, tau=0):
     else:
         Z = []
         p_1, p_2 = np.random.multivariate_normal([1, 1], [[0.5, 0.2], [0.2, 0.5]])
+        p_3 = np.random.uniform(0, 1)
         eta_0 = 0
-
         for i in range(n_ind):
-            Z_temp = []
-            Z_temp += [[p_1 + p_2 * np.sqrt(t + 1) + np.random.normal(0, 1) for t in range(n_times)]]
-
-            """ 
-            Z_temp += [
-                [np.sqrt(t + 1) + np.random.normal() for t in range(5)] + [3 * np.sqrt(t + 1) - 10 + np.random.normal()
-                                                                           for t in range(5, n_times)]]
-            U = ornstein_uhlenbeck(n_times, 0.5)
-            for t in range(1, n_times):
-                mu += [mu[t - 1] * 0.2 + np.random.normal()]
-            Z_temp += [[np.log(t + 1) + mu[t] for t in range(n_times)]]
+            sampled_theta_t = []
             """
+            Z_temp = []
+            Z_temp += [[(p_1 + p_2*t)/10 + np.random.normal(0, 0.1) for t in range(n_times)]]
+            Z_temp += [
+                [t/10 + np.random.normal(0, 0.1) for t in range(5)] + [(3*t - 10)/10 + np.random.normal(0, 0.1)
+                                                                           for t in range(5, n_times)]]
+            #U = ornstein_uhlenbeck(n_times, 0.5)
+            for t in range(1, n_times):
+                mu += [(mu[t - 1] * 0.2)/10 + np.random.normal(0, 0.1)]
+            Z_temp += [[t/10+ mu[t] for t in range(n_times)]]
+            """
+            Z_temp = []
+            Z_temp += [[-1 if p_1 < 0 else 0 for _ in range(n_times)]]
+            Z_temp += [[-1 if p_2 < 0 else -2 for _ in range(n_times)]]
+            Z_temp += [[1 if p_3 < 0.2 else 0 for _ in range(n_times)]]
+            #Z_temp += [[np.random.normal(np.sqrt(t + 1), 0.1) for t in range(n_times)]]
+
             Time = np.random.gamma(gamma_0, eta)
+            #Z_temp += [[p_1 + p_2 * np.sqrt(t + 1) + np.random.normal(0, 1) for t in range(int(Time) +1)]]
             Z_0 = []
             for t in range(n_times):
-                print("sampling : ", gamma_0)
                 sample = metropolis_sampler(10 / (gamma_0 + t), Time, t, gamma_0=gamma_0, eta=eta)
                 theta_t = np.random.choice(sample, 1)[0]
-                print(i, Time, t, theta_t)
                 assert len(Z_temp) == len(alpha[0]) - 1, "Not enough alpha"
+                sampled_theta_t += [theta_t]
                 num = (np.log(theta_t) - np.sum(
                     np.sum([alpha[0][k] * Z_temp[k][t] for k in range(len(Z_temp))])))
                 Z_0 += [num / alpha[0][-1]]
